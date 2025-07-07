@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "701288295703",
+    "project_id": "ponto-flutter-apk",
+    "storage_bucket": "ponto-flutter-apk.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:701288295703:android:9d9759fbbd4302e7641b52",
+        "android_client_info": {
+          "package_name": "com.example.controle_ponto"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBIoNhEwPGQ9Y8nvDFL7coRXiE6GuNEXxI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:701288295703:android:fdf22e514d8aee45641b52",
+        "android_client_info": {
+          "package_name": "com.rpdsouza"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBIoNhEwPGQ9Y8nvDFL7coRXiE6GuNEXxI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
