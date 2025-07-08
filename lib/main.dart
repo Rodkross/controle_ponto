@@ -2,21 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart'; // Pacote para formatação de data/hora
-import 'package:flutter_localizations/flutter_localizations.dart'; // NECESSÁRIO para localização
+import 'package:intl/intl.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter/foundation.dart' show kIsWeb; // Importe kIsWeb
 
-// Importa o arquivo de opções do Firebase gerado automaticamente (se você já o gerou)
-// Certifique-se de que este arquivo existe e está configurado corretamente.
 import 'firebase_options.dart';
 
 void main() async {
-  // Garante que o Flutter Binding esteja inicializado antes de qualquer operação assíncrona do Firebase.
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Inicializa o Firebase para a plataforma atual.
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  // Inicia o aplicativo Flutter.
   runApp(JornadaApp());
 }
 
@@ -25,21 +19,16 @@ class JornadaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Controle de Jornada',
-      // Define a página inicial como LoginPage.
       home: LoginPage(),
-
-      // --- CONFIGURAÇÃO DE LOCALIZAÇÃO PARA RESOLVER LocaleDataException ---
-      // Isso é importante para a formatação de datas em português (ex: "Julho")
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [
-        Locale('en', 'US'), // Inglês americano (padrão)
-        Locale('pt', 'BR'), // Português do Brasil
+        Locale('en', 'US'),
+        Locale('pt', 'BR'),
       ],
-      // Define o locale padrão para Português do Brasil, se disponível.
       localeResolutionCallback: (locale, supportedLocales) {
         for (var supportedLocale in supportedLocales) {
           if (supportedLocale.languageCode == locale?.languageCode &&
@@ -47,30 +36,21 @@ class JornadaApp extends StatelessWidget {
             return supportedLocale;
           }
         }
-        return supportedLocales
-            .first; // Retorna a primeira localidade suportada como fallback
+        return supportedLocales.first;
       },
-      // -------------------------------------------------------------------
-
-      // Define um tema básico para o aplicativo para um visual mais coeso
       theme: ThemeData(
-        primarySwatch: Colors.blue, // Cor primária para AppBar, botões, etc.
-        visualDensity:
-            VisualDensity.adaptivePlatformDensity, // Densidade visual adaptável
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.blue, // Cor de fundo da AppBar
-          foregroundColor: Colors.white, // Cor do texto e ícones na AppBar
+          backgroundColor: Colors.blue,
+          foregroundColor: Colors.white,
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor:
-                Colors.blue, // Cor de fundo padrão para ElevatedButtons
-            foregroundColor:
-                Colors.white, // Cor do texto padrão para ElevatedButtons
+            backgroundColor: Colors.blue,
+            foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(
-                10,
-              ), // Bordas arredondadas padrão
+              borderRadius: BorderRadius.circular(10),
             ),
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             textStyle: const TextStyle(fontSize: 16),
@@ -78,15 +58,13 @@ class JornadaApp extends StatelessWidget {
         ),
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
-            foregroundColor:
-                Colors.blue, // Cor do texto padrão para TextButtons
+            foregroundColor: Colors.blue,
           ),
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
-            foregroundColor:
-                Colors.blue, // Cor do texto/ícone para OutlinedButtons
-            side: const BorderSide(color: Colors.blue), // Cor da borda
+            foregroundColor: Colors.blue,
+            side: const BorderSide(color: Colors.blue),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),
@@ -112,36 +90,28 @@ class JornadaApp extends StatelessWidget {
 
 class LoginPage extends StatefulWidget {
   @override
-  // Correção da nomenclatura: createState deve retornar uma instância de _LoginPageState
   _LoginPageState createState() => _LoginPageState();
 }
 
-// Correção da nomenclatura: A classe de estado deve ter o sufixo 'State'
 class _LoginPageState extends State<LoginPage> {
-  // Controladores para os campos de texto de e-mail e senha.
   final TextEditingController emailController = TextEditingController();
   final TextEditingController senhaController = TextEditingController();
-  // Instância do Firebase Authentication para operações de login.
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Função assíncrona para realizar o login do usuário.
   void _login() async {
     try {
-      // Tenta fazer login com e-mail e senha fornecidos.
       final userCredential = await _auth.signInWithEmailAndPassword(
-        email: emailController.text.trim(), // Remove espaços em branco
-        password: senhaController.text.trim(), // Remove espaços em branco
+        email: emailController.text.trim(),
+        password: senhaController.text.trim(),
       );
-      // Se o login for bem-sucedido, navega para a HomePage e substitui a LoginPage na pilha de navegação.
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => HomePage(user: userCredential.user!)),
       );
     } catch (e) {
-      // Em caso de erro, exibe uma SnackBar com a mensagem de erro.
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erro no login: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro no login: $e')),
+      );
     }
   }
 
@@ -153,11 +123,9 @@ class _LoginPageState extends State<LoginPage> {
         padding: const EdgeInsets.all(20.0),
         child: Center(
           child: SingleChildScrollView(
-            // Para evitar overflow quando o teclado aparece
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment:
-                  CrossAxisAlignment.stretch, // Estica os elementos na largura
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
                   'Bem-vindo ao Controle de Ponto',
@@ -176,7 +144,7 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 15),
                 TextField(
                   controller: senhaController,
-                  obscureText: true, // Esconde o texto para senhas.
+                  obscureText: true,
                   decoration: const InputDecoration(
                     labelText: 'Senha',
                     prefixIcon: Icon(Icons.lock),
@@ -184,14 +152,12 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 25),
                 ElevatedButton(
-                  onPressed:
-                      _login, // Chama a função _login ao ser pressionado.
+                  onPressed: _login,
                   child: const Text('Entrar', style: TextStyle(fontSize: 18)),
                 ),
                 const SizedBox(height: 10),
                 TextButton(
                   onPressed: () {
-                    // TODO: Implementar a funcionalidade de "Esqueceu a senha?".
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text(
@@ -212,7 +178,7 @@ class _LoginPageState extends State<LoginPage> {
 }
 
 class HomePage extends StatefulWidget {
-  final User user; // O usuário logado é passado para a HomePage.
+  final User user;
   const HomePage({required this.user});
 
   @override
@@ -220,14 +186,11 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // Instância do Firestore para interagir com o banco de dados.
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // Variáveis de estado para controlar a interface do usuário.
-  String _status = "Fora de Jornada"; // Status atual da jornada.
-  bool _isAdmin = false; // Flag para verificar se o usuário é admin.
+  String _status = "Fora de Jornada";
+  bool _isAdmin = false;
 
-  // Flags para controlar a habilitação dos botões de registro de ponto.
   bool _canRegisterEntrada = true;
   bool _canRegisterSaidaIntervalo = false;
   bool _canRegisterRetornoIntervalo = false;
@@ -236,43 +199,32 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    // Carrega o status do usuário e o estado dos botões ao iniciar a página.
     _loadUserStatusAndPunchStates();
   }
 
-  // Carrega o status de admin do usuário (ex: de uma coleção 'users')
-  // e o último ponto do dia para definir o status e a habilitação dos botões.
   Future<void> _loadUserStatusAndPunchStates() async {
     setState(() {
-      // Exemplo: Definindo isAdmin como true fixo para fins de demonstração.
-      // Em um app real, você buscaria isso de um perfil de usuário no Firestore
-      // (ex: _db.collection('users').doc(widget.user.uid).get()).
       _isAdmin = true;
     });
 
     final today = DateTime.now();
-    // Define o início e o fim do dia atual para a consulta.
     final startOfDay = DateTime(today.year, today.month, today.day);
     final endOfDay = DateTime(today.year, today.month, today.day, 23, 59, 59);
 
     try {
-      // Consulta o último ponto registrado pelo usuário no dia atual.
       final lastPunchSnapshot = await _db
           .collection('batidas')
           .where('uid', isEqualTo: widget.user.uid)
           .where('timestamp', isGreaterThanOrEqualTo: startOfDay)
           .where('timestamp', isLessThanOrEqualTo: endOfDay)
-          .orderBy('timestamp', descending: true) // Pega o mais recente.
-          .limit(1) // Apenas um documento.
+          .orderBy('timestamp', descending: true)
+          .limit(1)
           .get();
 
       if (lastPunchSnapshot.docs.isNotEmpty) {
         final lastPunch = lastPunchSnapshot.docs.first.data();
         final lastPunchType = lastPunch['tipo'] as String;
 
-        // **Lógica aprimorada para persistência do estado "Jornada Concluída":**
-        // Se o último ponto do dia for uma 'saída', a jornada está completa.
-        // Nesse caso, TODOS os botões devem ser desabilitados ao carregar a página.
         if (lastPunchType == 'saída') {
           setState(() {
             _status = "Jornada Concluída";
@@ -282,19 +234,14 @@ class _HomePageState extends State<HomePage> {
             _canRegisterSaida = false;
           });
         } else {
-          // Se o último ponto NÃO for uma 'saída' (ainda em jornada ou intervalo),
-          // atualiza o estado dos botões de acordo com o fluxo normal da jornada.
           setState(() {
             _updateStatusAndButtonStates(lastPunchType);
           });
         }
       } else {
-        // Se não houver pontos hoje (é um novo dia ou o primeiro acesso do dia),
-        // define o estado inicial padrão para iniciar uma nova jornada.
         setState(() {
           _status = "Fora de Jornada";
-          _canRegisterEntrada =
-              true; // Habilita apenas a entrada para iniciar o dia
+          _canRegisterEntrada = true;
           _canRegisterSaidaIntervalo = false;
           _canRegisterRetornoIntervalo = false;
           _canRegisterSaida = false;
@@ -302,7 +249,6 @@ class _HomePageState extends State<HomePage> {
       }
     } catch (e) {
       if (mounted) {
-        // Verifica se o widget ainda está montado antes de chamar setState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro ao carregar estado dos pontos: $e')),
         );
@@ -311,45 +257,37 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Lógica para atualizar o status da jornada e a habilitação dos botões
-  // com base no último tipo de ponto registrado. Esta função é chamada
-  // APÓS uma batida ser registrada com sucesso.
   void _updateStatusAndButtonStates(String lastPunchType) {
     switch (lastPunchType) {
       case 'entrada':
         _status = "Em Jornada";
-        _canRegisterEntrada = false; // Não pode registrar entrada novamente.
-        _canRegisterSaidaIntervalo = true; // Pode sair para intervalo.
-        _canRegisterRetornoIntervalo = false; // Não pode retornar sem sair.
-        _canRegisterSaida = true; // Pode registrar saída direta.
+        _canRegisterEntrada = false;
+        _canRegisterSaidaIntervalo = true;
+        _canRegisterRetornoIntervalo = false;
+        _canRegisterSaida = true;
         break;
       case 'saída intervalo':
         _status = "Em Intervalo";
         _canRegisterEntrada = false;
-        _canRegisterSaidaIntervalo =
-            false; // DESABILITA: Não pode sair para intervalo novamente no mesmo dia.
-        _canRegisterRetornoIntervalo = true; // Deve retornar do intervalo.
-        _canRegisterSaida = false; // Não pode sair enquanto em intervalo.
+        _canRegisterSaidaIntervalo = false;
+        _canRegisterRetornoIntervalo = true;
+        _canRegisterSaida = false;
         break;
       case 'retorno intervalo':
         _status = "Em Jornada";
         _canRegisterEntrada = false;
-        _canRegisterSaidaIntervalo =
-            false; // Mantém desabilitado após retorno do intervalo (uma única saída para intervalo por dia).
-        _canRegisterRetornoIntervalo = false; // Não pode retornar novamente.
-        _canRegisterSaida = true; // Pode registrar saída.
+        _canRegisterSaidaIntervalo = false;
+        _canRegisterRetornoIntervalo = false;
+        _canRegisterSaida = true;
         break;
       case 'saída':
         _status = "Jornada Concluída";
-        // Após a saída final, todos os botões são desabilitados para o dia.
-        // Esta é a mesma lógica aplicada na _loadUserStatusAndPunchStates para consistência.
         _canRegisterEntrada = false;
         _canRegisterSaidaIntervalo = false;
         _canRegisterRetornoIntervalo = false;
         _canRegisterSaida = false;
         break;
       default:
-        // Estado padrão, se houver um tipo de ponto desconhecido ou erro.
         _status = "Fora de Jornada";
         _canRegisterEntrada = true;
         _canRegisterSaidaIntervalo = false;
@@ -359,10 +297,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Registra um novo ponto no Firestore.
   void _registrarBatida(BuildContext context, String tipo) async {
-    // --- IMPORTANTE: Verifica se o botão correspondente está habilitado antes de prosseguir. ---
-    // Isso impede registros duplicados ou fora de sequência no mesmo dia.
     if ((tipo == 'entrada' && !_canRegisterEntrada) ||
         (tipo == 'saída intervalo' && !_canRegisterSaidaIntervalo) ||
         (tipo == 'retorno intervalo' && !_canRegisterRetornoIntervalo) ||
@@ -380,15 +315,12 @@ class _HomePageState extends State<HomePage> {
     }
 
     try {
-      // Adiciona o novo registro de ponto à coleção 'batidas'.
       await _db.collection('batidas').add({
-        'uid': widget.user.uid, // ID do usuário logado.
-        'tipo': tipo, // Tipo de ponto (entrada, saída intervalo, etc.).
-        'timestamp':
-            FieldValue.serverTimestamp(), // Horário do servidor Firebase.
+        'uid': widget.user.uid,
+        'tipo': tipo,
+        'timestamp': FieldValue.serverTimestamp(),
       });
 
-      // Atualiza o estado da UI após o registro bem-sucedido.
       setState(() {
         _updateStatusAndButtonStates(tipo);
       });
@@ -408,28 +340,21 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Mostra um modal com todos os registros de ponto do mês atual.
+  // --- FUNÇÃO _mostrarRegistrosDoMes ADAPTADA PARA WEB/MOBILE ---
   Future<void> _mostrarRegistrosDoMes(BuildContext context) async {
     final now = DateTime.now();
-    // Calcula o primeiro e o último dia do mês atual.
     final firstDayOfMonth = DateTime(now.year, now.month, 1);
     final lastDayOfMonth = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
 
     try {
-      // Consulta todos os registros de ponto do usuário para o mês atual.
       final querySnapshot = await _db
           .collection('batidas')
           .where('uid', isEqualTo: widget.user.uid)
           .where('timestamp', isGreaterThanOrEqualTo: firstDayOfMonth)
           .where('timestamp', isLessThanOrEqualTo: lastDayOfMonth)
-          .orderBy(
-            'timestamp',
-            descending: false,
-          ) // Ordena do mais antigo para o mais novo.
+          .orderBy('timestamp', descending: false)
           .get();
 
-      // Mapeia os registros por dia para a exibição em colunas.
-      // Formato: { 'YYYY-MM-DD': { 'entrada': 'HH:mm', 'saída intervalo': 'HH:mm', ... } }
       Map<String, Map<String, String>> dailyRecords = {};
 
       for (var doc in querySnapshot.docs) {
@@ -438,101 +363,131 @@ class _HomePageState extends State<HomePage> {
         final tipo = data['tipo'] as String?;
 
         if (timestamp != null && tipo != null) {
-          final dateKey = DateFormat(
-            'yyyy-MM-dd',
-          ).format(timestamp); // Chave para o dia.
-          final timeValue = DateFormat(
-            'HH:mm',
-          ).format(timestamp); // Horário formatado.
+          final dateKey = DateFormat('yyyy-MM-dd').format(timestamp);
+          final timeValue = DateFormat('HH:mm').format(timestamp);
 
-          dailyRecords.putIfAbsent(
-            dateKey,
-            () => {},
-          ); // Cria o mapa para o dia se não existir.
-          dailyRecords[dateKey]![tipo] = timeValue; // Adiciona o ponto ao dia.
+          dailyRecords.putIfAbsent(dateKey, () => {});
+          dailyRecords[dateKey]![tipo] = timeValue;
         }
       }
 
-      // Ordena os dias para garantir a exibição cronológica.
-      final sortedDates = dailyRecords.keys.toList().toList()..sort();
+      final sortedDates = dailyRecords.keys.toList()..sort();
 
-      // Exibe os registros em um AlertDialog com um DataTable.
       if (mounted) {
-        // Verifica se o widget ainda está montado antes de chamar showDialog
         showDialog(
           context: context,
           builder: (_) => AlertDialog(
             title: Text(
               'Registros do Mês (${DateFormat('MMMM y', 'pt_BR').format(now)})',
+              style: const TextStyle(fontSize: 18),
             ),
             content: SizedBox(
-              width:
-                  MediaQuery.of(context).size.width *
-                  0.9, // Ocupa 90% da largura da tela.
-              child: SingleChildScrollView(
-                scrollDirection: Axis
-                    .vertical, // Permite rolagem vertical se houver muitos registros.
-                child: DataTable(
-                  columnSpacing: 12, // Espaçamento entre as colunas.
-                  dataRowMinHeight: 30,
-                  dataRowMaxHeight: 40,
-                  columns: const <DataColumn>[
-                    DataColumn(
-                      label: Expanded(
-                        child: Text(
-                          'Data',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+              width: kIsWeb ? 800 : MediaQuery.of(context).size.width * 0.9, // Largura maior para web, adaptada para mobile
+              child: sortedDates.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'Nenhum registro encontrado para este mês.',
+                        textAlign: TextAlign.center,
+                      ),
+                    )
+                  : kIsWeb
+                      ? SingleChildScrollView(
+                          scrollDirection: Axis.vertical, // Permite rolagem vertical para web
+                          child: DataTable(
+                            columnSpacing: 20, // Espaçamento entre as colunas para web
+                            dataRowMinHeight: 40,
+                            dataRowMaxHeight: 50,
+                            columns: const <DataColumn>[
+                              DataColumn(
+                                label: Expanded(
+                                  child: Text(
+                                    'Data',
+                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'Entrada',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'Saída Intervalo',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'Retorno Intervalo',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'Saída',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                            rows: sortedDates.map((dateKey) {
+                              final records = dailyRecords[dateKey]!;
+                              final displayDate = DateFormat('dd/MM').format(
+                                DateTime.parse(dateKey),
+                              );
+                              return DataRow(
+                                cells: <DataCell>[
+                                  DataCell(Text(displayDate)),
+                                  DataCell(Text(records['entrada'] ?? '-')),
+                                  DataCell(Text(records['saída intervalo'] ?? '-')),
+                                  DataCell(Text(records['retorno intervalo'] ?? '-')),
+                                  DataCell(Text(records['saída'] ?? '-')),
+                                ],
+                              );
+                            }).toList(),
+                          ),
+                        )
+                      : ListView.builder( // Versão para dispositivos móveis
+                          shrinkWrap: true,
+                          itemCount: sortedDates.length,
+                          itemBuilder: (context, index) {
+                            final dateKey = sortedDates[index];
+                            final records = dailyRecords[dateKey]!;
+                            final displayDate = DateFormat('dd/MM/yyyy').format(DateTime.parse(dateKey));
+
+                            return Card(
+                              margin: const EdgeInsets.symmetric(vertical: 8.0),
+                              elevation: 3,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10)),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      displayDate,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    const Divider(),
+                                    _buildTimeRow('Entrada', records['entrada']),
+                                    _buildTimeRow('Saída Intervalo', records['saída intervalo']),
+                                    _buildTimeRow('Retorno Intervalo', records['retorno intervalo']),
+                                    _buildTimeRow('Saída', records['saída']),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      ),
-                    ),
-                    DataColumn(
-                      label: Text(
-                        'Entrada',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    DataColumn(
-                      label: Text(
-                        'Saída Intervalo',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    DataColumn(
-                      label: Text(
-                        'Retorno Intervalo',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    DataColumn(
-                      label: Text(
-                        'Saída',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                  rows: sortedDates.map((dateKey) {
-                    final records = dailyRecords[dateKey]!;
-                    final displayDate = DateFormat('dd/MM').format(
-                      DateTime.parse(dateKey),
-                    ); // Formata a data para exibição (ex: 07/07).
-                    return DataRow(
-                      cells: <DataCell>[
-                        DataCell(Text(displayDate)),
-                        DataCell(
-                          Text(records['entrada'] ?? '-'),
-                        ), // Exibe '-' se o ponto não existir.
-                        DataCell(Text(records['saída intervalo'] ?? '-')),
-                        DataCell(Text(records['retorno intervalo'] ?? '-')),
-                        DataCell(Text(records['saída'] ?? '-')),
-                      ],
-                    );
-                  }).toList(),
-                ),
-              ),
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context), // Fecha o modal.
+                onPressed: () => Navigator.pop(context),
                 child: const Text('Fechar'),
               ),
             ],
@@ -549,10 +504,25 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Realiza o logout do usuário.
+  // Widget auxiliar para construir uma linha de horário (rótulo: valor)
+  Widget _buildTimeRow(String label, String? time) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            '$label:',
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+          Text(time ?? '-'),
+        ],
+      ),
+    );
+  }
+
   void _logout() async {
     await FirebaseAuth.instance.signOut();
-    // Retorna para a LoginPage após o logout.
     if (mounted) {
       Navigator.pushReplacement(
         context,
@@ -563,37 +533,29 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // Define a cor da fonte do status com base no texto atual.
     Color statusColor;
     switch (_status) {
       case "Jornada Concluída":
-        statusColor =
-            Colors.green; // Verde para jornada finalizada com sucesso.
+        statusColor = Colors.green;
         break;
       default:
-        statusColor = Colors
-            .red; // Vermelho para outros status (Em Jornada, Em Intervalo, Fora de Jornada).
+        statusColor = Colors.red;
         break;
     }
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Controle de Jornada'),
-        centerTitle: true, // Centraliza o título
+        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Center(
-          // Centraliza o conteúdo principal verticalmente
           child: SingleChildScrollView(
-            // Para telas menores, permite rolar
             child: Column(
-              mainAxisAlignment:
-                  MainAxisAlignment.center, // Centraliza conteúdo na coluna
-              crossAxisAlignment:
-                  CrossAxisAlignment.stretch, // Estica elementos na largura
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // --- Seção de Boas-Vindas e Status ---
                 Card(
                   elevation: 4,
                   margin: const EdgeInsets.only(bottom: 25),
@@ -606,7 +568,7 @@ class _HomePageState extends State<HomePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Olá, ${widget.user.email?.split('@')[0] ?? 'Usuário'}!', // Exibe só a parte antes do @
+                          'Olá, ${widget.user.email?.split('@')[0] ?? 'Usuário'}!',
                           style: Theme.of(context).textTheme.headlineSmall
                               ?.copyWith(fontWeight: FontWeight.bold),
                         ),
@@ -629,21 +591,15 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
-                // --- Botões de Registro de Ponto (Grid/Row para melhor organização) ---
                 GridView.count(
-                  shrinkWrap:
-                      true, // Importante para GridView dentro de Column/SingleChildScrollView
-                  physics:
-                      const NeverScrollableScrollPhysics(), // Desabilita rolagem própria do GridView
-                  crossAxisCount: 2, // 2 botões por linha
-                  crossAxisSpacing: 15, // Espaçamento horizontal
-                  mainAxisSpacing: 15, // Espaçamento vertical
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 15,
+                  mainAxisSpacing: 15,
                   childAspectRatio:
-                      (MediaQuery.of(context).size.width / 2 - 35) /
-                      100, // Ajusta proporção
+                      (MediaQuery.of(context).size.width / 2 - 35) / 100,
                   children: [
                     _buildPontoButton(
                       context,
@@ -675,10 +631,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 30),
-
-                // --- Botão Ver Registros e Admin ---
                 OutlinedButton.icon(
                   onPressed: () => _mostrarRegistrosDoMes(context),
                   icon: const Icon(Icons.calendar_month),
@@ -690,7 +643,6 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-
                 if (_isAdmin) ...[
                   const SizedBox(height: 10),
                   TextButton.icon(
@@ -720,19 +672,15 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-      // --- FloatingActionButton para o botão de Deslogar ---
       floatingActionButton: FloatingActionButton(
-        onPressed: _logout, // Chama a função de logout
-        child: const Icon(Icons.exit_to_app), // Ícone de porta saindo
-        tooltip: 'Sair', // Texto que aparece ao segurar o botão
+        onPressed: _logout,
+        child: const Icon(Icons.exit_to_app),
+        tooltip: 'Sair',
       ),
-      // Posiciona o FloatingActionButton no canto inferior direito
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      // ---------------------------------------------------
     );
   }
 
-  // Widget auxiliar para construir os botões de ponto com um estilo consistente
   Widget _buildPontoButton(
     BuildContext context,
     String text,
@@ -745,12 +693,8 @@ class _HomePageState extends State<HomePage> {
       icon: Icon(icon),
       label: Text(text, textAlign: TextAlign.center),
       style: ElevatedButton.styleFrom(
-        foregroundColor: isEnabled
-            ? Colors.white
-            : Colors.grey[400], // Cor do texto/ícone
-        backgroundColor: isEnabled
-            ? Theme.of(context).primaryColor
-            : Colors.grey[200], // Cor de fundo
+        foregroundColor: isEnabled ? Colors.white : Colors.grey[400],
+        backgroundColor: isEnabled ? Theme.of(context).primaryColor : Colors.grey[200],
         padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
