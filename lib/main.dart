@@ -4,7 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter/foundation.dart' show kIsWeb; // Importe kIsWeb
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:collection/collection.dart'; // Importação necessária para firstWhereOrNull
 
 import 'firebase_options.dart';
 
@@ -177,6 +178,43 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
+// --- Definição do enum PunchType e sua extensão ---
+enum PunchType {
+  entrada,
+  saidaIntervalo,
+  retornoIntervalo,
+  saida,
+}
+
+extension PunchTypeExtension on PunchType {
+  String toFirestoreString() {
+    switch (this) {
+      case PunchType.entrada:
+        return 'entrada';
+      case PunchType.saidaIntervalo:
+        return 'saída intervalo';
+      case PunchType.retornoIntervalo:
+        return 'retorno intervalo';
+      case PunchType.saida:
+        return 'saída';
+    }
+  }
+
+  String toDisplayString() {
+    switch (this) {
+      case PunchType.entrada:
+        return 'Entrada';
+      case PunchType.saidaIntervalo:
+        return 'Saída Intervalo';
+      case PunchType.retornoIntervalo:
+        return 'Retorno Intervalo';
+      case PunchType.saida:
+        return 'Saída';
+    }
+  }
+}
+// --- Fim da definição do enum PunchType e sua extensão ---
+
 class HomePage extends StatefulWidget {
   final User user;
   const HomePage({required this.user});
@@ -204,7 +242,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadUserStatusAndPunchStates() async {
     setState(() {
-      _isAdmin = true;
+      _isAdmin = true; // Definido como true para fins de demonstração
     });
 
     final today = DateTime.now();
@@ -223,9 +261,13 @@ class _HomePageState extends State<HomePage> {
 
       if (lastPunchSnapshot.docs.isNotEmpty) {
         final lastPunch = lastPunchSnapshot.docs.first.data();
-        final lastPunchType = lastPunch['tipo'] as String;
+        final lastPunchTypeString = lastPunch['tipo'] as String;
 
-        if (lastPunchType == 'saída') {
+        // Converte a string do Firestore de volta para o enum PunchType
+        final PunchType? lastPunchType = PunchType.values.firstWhereOrNull(
+            (type) => type.toFirestoreString() == lastPunchTypeString);
+
+        if (lastPunchType == PunchType.saida) {
           setState(() {
             _status = "Jornada Concluída";
             _canRegisterEntrada = false;
@@ -233,7 +275,7 @@ class _HomePageState extends State<HomePage> {
             _canRegisterRetornoIntervalo = false;
             _canRegisterSaida = false;
           });
-        } else {
+        } else if (lastPunchType != null) {
           setState(() {
             _updateStatusAndButtonStates(lastPunchType);
           });
@@ -257,39 +299,32 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _updateStatusAndButtonStates(String lastPunchType) {
+  void _updateStatusAndButtonStates(PunchType lastPunchType) {
     switch (lastPunchType) {
-      case 'entrada':
+      case PunchType.entrada:
         _status = "Em Jornada";
         _canRegisterEntrada = false;
         _canRegisterSaidaIntervalo = true;
         _canRegisterRetornoIntervalo = false;
         _canRegisterSaida = true;
         break;
-      case 'saída intervalo':
+      case PunchType.saidaIntervalo:
         _status = "Em Intervalo";
         _canRegisterEntrada = false;
         _canRegisterSaidaIntervalo = false;
         _canRegisterRetornoIntervalo = true;
         _canRegisterSaida = false;
         break;
-      case 'retorno intervalo':
+      case PunchType.retornoIntervalo:
         _status = "Em Jornada";
         _canRegisterEntrada = false;
         _canRegisterSaidaIntervalo = false;
         _canRegisterRetornoIntervalo = false;
         _canRegisterSaida = true;
         break;
-      case 'saída':
+      case PunchType.saida:
         _status = "Jornada Concluída";
         _canRegisterEntrada = false;
-        _canRegisterSaidaIntervalo = false;
-        _canRegisterRetornoIntervalo = false;
-        _canRegisterSaida = false;
-        break;
-      default:
-        _status = "Fora de Jornada";
-        _canRegisterEntrada = true;
         _canRegisterSaidaIntervalo = false;
         _canRegisterRetornoIntervalo = false;
         _canRegisterSaida = false;
@@ -297,11 +332,11 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _registrarBatida(BuildContext context, String tipo) async {
-    if ((tipo == 'entrada' && !_canRegisterEntrada) ||
-        (tipo == 'saída intervalo' && !_canRegisterSaidaIntervalo) ||
-        (tipo == 'retorno intervalo' && !_canRegisterRetornoIntervalo) ||
-        (tipo == 'saída' && !_canRegisterSaida)) {
+  void _registrarBatida(BuildContext context, PunchType tipo) async {
+    if ((tipo == PunchType.entrada && !_canRegisterEntrada) ||
+        (tipo == PunchType.saidaIntervalo && !_canRegisterSaidaIntervalo) ||
+        (tipo == PunchType.retornoIntervalo && !_canRegisterRetornoIntervalo) ||
+        (tipo == PunchType.saida && !_canRegisterSaida)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -317,7 +352,7 @@ class _HomePageState extends State<HomePage> {
     try {
       await _db.collection('batidas').add({
         'uid': widget.user.uid,
-        'tipo': tipo,
+        'tipo': tipo.toFirestoreString(), // Usa a extensão para gravar no Firestore
         'timestamp': FieldValue.serverTimestamp(),
       });
 
@@ -327,7 +362,7 @@ class _HomePageState extends State<HomePage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Batida "$tipo" registrada com sucesso.')),
+          SnackBar(content: Text('Batida "${tipo.toDisplayString()}" registrada com sucesso.')), // Usa para exibição na UI
         );
       }
     } catch (e) {
@@ -340,7 +375,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // --- FUNÇÃO _mostrarRegistrosDoMes ADAPTADA PARA WEB/MOBILE ---
   Future<void> _mostrarRegistrosDoMes(BuildContext context) async {
     final now = DateTime.now();
     final firstDayOfMonth = DateTime(now.year, now.month, 1);
@@ -360,7 +394,7 @@ class _HomePageState extends State<HomePage> {
       for (var doc in querySnapshot.docs) {
         final data = doc.data();
         final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
-        final tipo = data['tipo'] as String?;
+        final tipo = data['tipo'] as String?; // Continua lendo como string do Firestore
 
         if (timestamp != null && tipo != null) {
           final dateKey = DateFormat('yyyy-MM-dd').format(timestamp);
@@ -382,7 +416,7 @@ class _HomePageState extends State<HomePage> {
               style: const TextStyle(fontSize: 18),
             ),
             content: SizedBox(
-              width: kIsWeb ? 800 : MediaQuery.of(context).size.width * 0.9, // Largura maior para web, adaptada para mobile
+              width: kIsWeb ? 800 : MediaQuery.of(context).size.width * 0.9,
               child: sortedDates.isEmpty
                   ? const Center(
                       child: Text(
@@ -392,9 +426,9 @@ class _HomePageState extends State<HomePage> {
                     )
                   : kIsWeb
                       ? SingleChildScrollView(
-                          scrollDirection: Axis.vertical, // Permite rolagem vertical para web
+                          scrollDirection: Axis.vertical,
                           child: DataTable(
-                            columnSpacing: 20, // Espaçamento entre as colunas para web
+                            columnSpacing: 20,
                             dataRowMinHeight: 40,
                             dataRowMaxHeight: 50,
                             columns: const <DataColumn>[
@@ -436,19 +470,20 @@ class _HomePageState extends State<HomePage> {
                               final displayDate = DateFormat('dd/MM').format(
                                 DateTime.parse(dateKey),
                               );
+                              // Mapeie as chaves usando as strings do Firestore que correspondem aos enums
                               return DataRow(
                                 cells: <DataCell>[
                                   DataCell(Text(displayDate)),
-                                  DataCell(Text(records['entrada'] ?? '-')),
-                                  DataCell(Text(records['saída intervalo'] ?? '-')),
-                                  DataCell(Text(records['retorno intervalo'] ?? '-')),
-                                  DataCell(Text(records['saída'] ?? '-')),
+                                  DataCell(Text(records[PunchType.entrada.toFirestoreString()] ?? '-')),
+                                  DataCell(Text(records[PunchType.saidaIntervalo.toFirestoreString()] ?? '-')),
+                                  DataCell(Text(records[PunchType.retornoIntervalo.toFirestoreString()] ?? '-')),
+                                  DataCell(Text(records[PunchType.saida.toFirestoreString()] ?? '-')),
                                 ],
                               );
                             }).toList(),
                           ),
                         )
-                      : ListView.builder( // Versão para dispositivos móveis
+                      : ListView.builder(
                           shrinkWrap: true,
                           itemCount: sortedDates.length,
                           itemBuilder: (context, index) {
@@ -474,10 +509,11 @@ class _HomePageState extends State<HomePage> {
                                       ),
                                     ),
                                     const Divider(),
-                                    _buildTimeRow('Entrada', records['entrada']),
-                                    _buildTimeRow('Saída Intervalo', records['saída intervalo']),
-                                    _buildTimeRow('Retorno Intervalo', records['retorno intervalo']),
-                                    _buildTimeRow('Saída', records['saída']),
+                                    // Use toDisplayString para o rótulo e toFirestoreString para buscar no mapa
+                                    _buildTimeRow(PunchType.entrada.toDisplayString(), records[PunchType.entrada.toFirestoreString()]),
+                                    _buildTimeRow(PunchType.saidaIntervalo.toDisplayString(), records[PunchType.saidaIntervalo.toFirestoreString()]),
+                                    _buildTimeRow(PunchType.retornoIntervalo.toDisplayString(), records[PunchType.retornoIntervalo.toFirestoreString()]),
+                                    _buildTimeRow(PunchType.saida.toDisplayString(), records[PunchType.saida.toFirestoreString()]),
                                   ],
                                 ),
                               ),
@@ -504,7 +540,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Widget auxiliar para construir uma linha de horário (rótulo: valor)
   Widget _buildTimeRow(String label, String? time) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -604,28 +639,28 @@ class _HomePageState extends State<HomePage> {
                     _buildPontoButton(
                       context,
                       'Registrar Entrada',
-                      'entrada',
+                      PunchType.entrada, // Usando o enum
                       _canRegisterEntrada,
                       Icons.login,
                     ),
                     _buildPontoButton(
                       context,
-                      'Saída Intervalo',
-                      'saída intervalo',
+                      'Saída para Intervalo',
+                      PunchType.saidaIntervalo, // Usando o enum
                       _canRegisterSaidaIntervalo,
                       Icons.lunch_dining,
                     ),
                     _buildPontoButton(
                       context,
-                      'Retorno Intervalo',
-                      'retorno intervalo',
+                      'Retorno do Intervalo',
+                      PunchType.retornoIntervalo, // Usando o enum
                       _canRegisterRetornoIntervalo,
                       Icons.restaurant_menu,
                     ),
                     _buildPontoButton(
                       context,
                       'Registrar Saída',
-                      'saída',
+                      PunchType.saida, // Usando o enum
                       _canRegisterSaida,
                       Icons.logout,
                     ),
@@ -684,7 +719,7 @@ class _HomePageState extends State<HomePage> {
   Widget _buildPontoButton(
     BuildContext context,
     String text,
-    String type,
+    PunchType type, // Tipo agora é PunchType
     bool isEnabled,
     IconData icon,
   ) {

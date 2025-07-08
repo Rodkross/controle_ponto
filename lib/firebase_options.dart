@@ -85,4 +85,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'ponto-flutter-apk.firebasestorage.app',
     measurementId: 'G-LDHKMMF3MD',
   );
+
 }
