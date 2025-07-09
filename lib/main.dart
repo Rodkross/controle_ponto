@@ -1,3 +1,4 @@
+import 'register_user_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -254,7 +255,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              'Bem-vindo(a), ${widget.user.email?.split('@')[0] ?? 'Usuário'}!',
+              'Bem-vindo(a), ${widget.user.email?.split('@')[0].toUpperCase() ?? 'Usuário'.toUpperCase()}!',
               style: Theme.of(context).textTheme.headlineMedium,
               textAlign: TextAlign.center,
             ),
@@ -263,6 +264,31 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               onPressed: _navigateToHomePage,
               icon: const Icon(Icons.calendar_today),
               label: const Text('Registrar Ponto'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 15,
+                  horizontal: 25,
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () {
+                // Implementar navegação para tela de cadastro
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => RegisterUserScreen()),
+                );
+              },
+              icon: const Icon(Icons.person_add),
+              label: const Text('Cadastrar Usuário'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                   vertical: 15,
@@ -743,15 +769,19 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    Color statusColor;
-    switch (_status) {
-      case "Jornada Concluída":
-        statusColor = Colors.green;
-        break;
-      default:
-        statusColor = Colors.red;
-        break;
+    Color statusColor = Colors.blue; // Cor padrão para "Fora de Jornada"
+
+    if (_status == "Jornada Concluída") {
+      statusColor = Colors.green; // Verde para "Jornada Concluída"
+    } else if (_status == "Em Jornada") {
+      statusColor = Colors.red; // Vermelho para "Em Jornada"
+    } else if (_status == "Em Intervalo") {
+      statusColor = Colors.orange; // Laranja para "Em Intervalo"
     }
+
+    // O caso padrão (Fora de Jornada) já está definido como azul na inicialização.
+
+    // O restante do código permanece o mesmo...
 
     return Scaffold(
       appBar: AppBar(
@@ -898,11 +928,21 @@ class _HomePageState extends State<HomePage> {
               heroTag: 'backButton', // Adicione um heroTag único
             ),
           ),
-          FloatingActionButton(
+          FloatingActionButton.extended(
+            onPressed: _backToWelcomeScreen,
+            label: const Text('Voltar'),
+            icon: const Icon(Icons.arrow_back),
+            tooltip: 'Voltar',
+            heroTag: 'backButton',
+            backgroundColor: Theme.of(context).primaryColor,
+          ),
+          FloatingActionButton.extended(
             onPressed: _logout,
-            child: const Icon(Icons.exit_to_app),
+            label: const Text('Sair'),
+            icon: const Icon(Icons.exit_to_app),
             tooltip: 'Sair',
-            heroTag: 'logoutButton', // Adicione um heroTag único
+            heroTag: 'logoutButton',
+            backgroundColor: Theme.of(context).primaryColor,
           ),
         ],
       ),
@@ -919,20 +959,34 @@ class _HomePageState extends State<HomePage> {
     bool isEnabled,
     IconData icon,
   ) {
-    return ElevatedButton.icon(
-      onPressed: isEnabled ? () => _registrarBatida(context, type) : null,
-      icon: Icon(icon),
-      label: Text(text, textAlign: TextAlign.center),
-      style: ElevatedButton.styleFrom(
-        foregroundColor: isEnabled ? Colors.white : Colors.grey[400],
-        backgroundColor: isEnabled
-            ? Theme.of(context).primaryColor
-            : Colors.grey[200],
-        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        elevation: 5,
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SizedBox(
+          width:
+              (constraints.maxWidth / 2) -
+              7.5, // Define a largura igual para todos os botões
+          child: ElevatedButton.icon(
+            onPressed: isEnabled ? () => _registrarBatida(context, type) : null,
+            icon: Icon(icon),
+            label: Text(text, textAlign: TextAlign.center),
+            style: ElevatedButton.styleFrom(
+              foregroundColor: isEnabled ? Colors.white : Colors.grey[400],
+              backgroundColor: isEnabled
+                  ? Theme.of(context).primaryColor
+                  : Colors.grey[200],
+              padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              textStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+              elevation: 5,
+            ),
+          ),
+        );
+      },
     );
   }
 }
