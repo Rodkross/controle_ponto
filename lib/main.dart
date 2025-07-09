@@ -7,7 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:collection/collection.dart'; // Importação necessária para firstWhereOrNull
 
-import 'firebase_options.dart';
+import 'firebase_options.dart'; // Certifique-se de que este arquivo existe e está configurado
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,10 +26,7 @@ class JornadaApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('en', 'US'),
-        Locale('pt', 'BR'),
-      ],
+      supportedLocales: const [Locale('en', 'US'), Locale('pt', 'BR')],
       localeResolutionCallback: (locale, supportedLocales) {
         for (var supportedLocale in supportedLocales) {
           if (supportedLocale.languageCode == locale?.languageCode &&
@@ -58,9 +55,7 @@ class JornadaApp extends StatelessWidget {
           ),
         ),
         textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(
-            foregroundColor: Colors.blue,
-          ),
+          style: TextButton.styleFrom(foregroundColor: Colors.blue),
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
@@ -98,6 +93,8 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController senhaController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  bool _isPasswordVisible =
+      false; // Variável de estado para visibilidade da senha
 
   void _login() async {
     try {
@@ -105,14 +102,43 @@ class _LoginPageState extends State<LoginPage> {
         email: emailController.text.trim(),
         password: senhaController.text.trim(),
       );
+      // Navega para a WelcomeScreen após o login bem-sucedido
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => HomePage(user: userCredential.user!)),
+        MaterialPageRoute(
+          builder: (_) => WelcomeScreen(user: userCredential.user!),
+        ),
       );
+    } on FirebaseAuthException catch (e) {
+      String errorMessage = 'Erro desconhecido no login.';
+      switch (e.code) {
+        case 'user-not-found':
+          errorMessage = 'Nenhum usuário encontrado para este e-mail.';
+          break;
+        case 'wrong-password':
+          errorMessage = 'Senha incorreta. Por favor, tente novamente.';
+          break;
+        case 'invalid-email':
+          errorMessage = 'O formato do e-mail é inválido.';
+          break;
+        case 'network-request-failed':
+          errorMessage = 'Erro de conexão. Verifique sua internet.';
+          break;
+        case 'too-many-requests':
+          errorMessage =
+              'Muitas tentativas de login. Tente novamente mais tarde.';
+          break;
+        default:
+          errorMessage = 'Erro no login: ${e.message ?? e.code}';
+          break;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(errorMessage)));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro no login: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro inesperado: $e')));
     }
   }
 
@@ -128,12 +154,12 @@ class _LoginPageState extends State<LoginPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'Bem-vindo ao Controle de Ponto',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                  textAlign: TextAlign.center,
+                Image.asset(
+                  'assets/images/logo2.png',
+                  height: 150, // Ajuste a altura conforme necessário
+                  width: 150, // Ajuste a largura conforme necessário
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 120), // Espaçamento após a logo
                 TextField(
                   controller: emailController,
                   decoration: const InputDecoration(
@@ -145,10 +171,24 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 15),
                 TextField(
                   controller: senhaController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
+                  obscureText:
+                      !_isPasswordVisible, // Controla a visibilidade da senha
+                  decoration: InputDecoration(
                     labelText: 'Senha',
-                    prefixIcon: Icon(Icons.lock),
+                    prefixIcon: const Icon(Icons.lock),
+                    suffixIcon: IconButton(
+                      // Botão para alternar visibilidade da senha
+                      icon: Icon(
+                        _isPasswordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isPasswordVisible = !_isPasswordVisible;
+                        });
+                      },
+                    ),
                   ),
                 ),
                 const SizedBox(height: 25),
@@ -178,13 +218,94 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
-// --- Definição do enum PunchType e sua extensão ---
-enum PunchType {
-  entrada,
-  saidaIntervalo,
-  retornoIntervalo,
-  saida,
+// --- Tela de Boas-Vindas ---
+class WelcomeScreen extends StatefulWidget {
+  final User user;
+
+  const WelcomeScreen({required this.user});
+
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
 }
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  void _navigateToHomePage() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => HomePage(user: widget.user)),
+    );
+  }
+
+  void _logout() async {
+    await FirebaseAuth.instance.signOut();
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => LoginPage()),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Bem-vindo(a), ${widget.user.email?.split('@')[0] ?? 'Usuário'}!',
+              style: Theme.of(context).textTheme.headlineMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 40),
+            ElevatedButton.icon(
+              onPressed: _navigateToHomePage,
+              icon: const Icon(Icons.calendar_today),
+              label: const Text('Registrar Ponto'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 15,
+                  horizontal: 25,
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            OutlinedButton.icon(
+              onPressed: _logout,
+              icon: const Icon(Icons.exit_to_app),
+              label: const Text('Sair'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 15,
+                  horizontal: 25,
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+// --- Fim da Tela de Boas-Vindas ---
+
+// --- Definição do enum PunchType e sua extensão ---
+enum PunchType { entrada, saidaIntervalo, retornoIntervalo, saida }
 
 extension PunchTypeExtension on PunchType {
   String toFirestoreString() {
@@ -242,7 +363,8 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadUserStatusAndPunchStates() async {
     setState(() {
-      _isAdmin = true; // Definido como true para fins de demonstração
+      _isAdmin =
+          true; // Definido como true para fins de demonstração. Em um app real, buscaria de algum lugar.
     });
 
     final today = DateTime.now();
@@ -265,7 +387,8 @@ class _HomePageState extends State<HomePage> {
 
         // Converte a string do Firestore de volta para o enum PunchType
         final PunchType? lastPunchType = PunchType.values.firstWhereOrNull(
-            (type) => type.toFirestoreString() == lastPunchTypeString);
+          (type) => type.toFirestoreString() == lastPunchTypeString,
+        );
 
         if (lastPunchType == PunchType.saida) {
           setState(() {
@@ -340,9 +463,7 @@ class _HomePageState extends State<HomePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'Este ponto já foi registrado para hoje ou não é permitido no momento.',
-            ),
+            content: Text('Esta batida não é permitida no momento.'),
           ),
         );
       }
@@ -352,7 +473,8 @@ class _HomePageState extends State<HomePage> {
     try {
       await _db.collection('batidas').add({
         'uid': widget.user.uid,
-        'tipo': tipo.toFirestoreString(), // Usa a extensão para gravar no Firestore
+        'tipo': tipo
+            .toFirestoreString(), // Usa a extensão para gravar no Firestore
         'timestamp': FieldValue.serverTimestamp(),
       });
 
@@ -362,7 +484,11 @@ class _HomePageState extends State<HomePage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Batida "${tipo.toDisplayString()}" registrada com sucesso.')), // Usa para exibição na UI
+          SnackBar(
+            content: Text(
+              'Batida "${tipo.toDisplayString()}" registrada com sucesso.',
+            ),
+          ), // Usa para exibição na UI
         );
       }
     } catch (e) {
@@ -394,7 +520,8 @@ class _HomePageState extends State<HomePage> {
       for (var doc in querySnapshot.docs) {
         final data = doc.data();
         final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
-        final tipo = data['tipo'] as String?; // Continua lendo como string do Firestore
+        final tipo =
+            data['tipo'] as String?; // Continua lendo como string do Firestore
 
         if (timestamp != null && tipo != null) {
           final dateKey = DateFormat('yyyy-MM-dd').format(timestamp);
@@ -425,101 +552,143 @@ class _HomePageState extends State<HomePage> {
                       ),
                     )
                   : kIsWeb
-                      ? SingleChildScrollView(
-                          scrollDirection: Axis.vertical,
-                          child: DataTable(
-                            columnSpacing: 20,
-                            dataRowMinHeight: 40,
-                            dataRowMaxHeight: 50,
-                            columns: const <DataColumn>[
-                              DataColumn(
-                                label: Expanded(
-                                  child: Text(
-                                    'Data',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
-                                  ),
+                  ? SingleChildScrollView(
+                      scrollDirection: Axis.vertical,
+                      child: DataTable(
+                        columnSpacing: 20,
+                        dataRowMinHeight: 40,
+                        dataRowMaxHeight: 50,
+                        columns: const <DataColumn>[
+                          DataColumn(
+                            label: Expanded(
+                              child: Text(
+                                'Data',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                          DataColumn(
+                            label: Text(
+                              'Entrada',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          DataColumn(
+                            label: Text(
+                              'Saída Intervalo',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          DataColumn(
+                            label: Text(
+                              'Retorno Intervalo',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          DataColumn(
+                            label: Text(
+                              'Saída',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                        rows: sortedDates.map((dateKey) {
+                          final records = dailyRecords[dateKey]!;
+                          final displayDate = DateFormat(
+                            'dd/MM',
+                          ).format(DateTime.parse(dateKey));
+                          // Mapeie as chaves usando as strings do Firestore que correspondem aos enums
+                          return DataRow(
+                            cells: <DataCell>[
+                              DataCell(Text(displayDate)),
+                              DataCell(
+                                Text(
+                                  records[PunchType.entrada
+                                          .toFirestoreString()] ??
+                                      '-',
                                 ),
                               ),
-                              DataColumn(
-                                label: Text(
-                                  'Entrada',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
+                              DataCell(
+                                Text(
+                                  records[PunchType.saidaIntervalo
+                                          .toFirestoreString()] ??
+                                      '-',
                                 ),
                               ),
-                              DataColumn(
-                                label: Text(
-                                  'Saída Intervalo',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
+                              DataCell(
+                                Text(
+                                  records[PunchType.retornoIntervalo
+                                          .toFirestoreString()] ??
+                                      '-',
                                 ),
                               ),
-                              DataColumn(
-                                label: Text(
-                                  'Retorno Intervalo',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                              DataColumn(
-                                label: Text(
-                                  'Saída',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
+                              DataCell(
+                                Text(
+                                  records[PunchType.saida
+                                          .toFirestoreString()] ??
+                                      '-',
                                 ),
                               ),
                             ],
-                            rows: sortedDates.map((dateKey) {
-                              final records = dailyRecords[dateKey]!;
-                              final displayDate = DateFormat('dd/MM').format(
-                                DateTime.parse(dateKey),
-                              );
-                              // Mapeie as chaves usando as strings do Firestore que correspondem aos enums
-                              return DataRow(
-                                cells: <DataCell>[
-                                  DataCell(Text(displayDate)),
-                                  DataCell(Text(records[PunchType.entrada.toFirestoreString()] ?? '-')),
-                                  DataCell(Text(records[PunchType.saidaIntervalo.toFirestoreString()] ?? '-')),
-                                  DataCell(Text(records[PunchType.retornoIntervalo.toFirestoreString()] ?? '-')),
-                                  DataCell(Text(records[PunchType.saida.toFirestoreString()] ?? '-')),
-                                ],
-                              );
-                            }).toList(),
-                          ),
-                        )
-                      : ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: sortedDates.length,
-                          itemBuilder: (context, index) {
-                            final dateKey = sortedDates[index];
-                            final records = dailyRecords[dateKey]!;
-                            final displayDate = DateFormat('dd/MM/yyyy').format(DateTime.parse(dateKey));
+                          );
+                        }).toList(),
+                      ),
+                    )
+                  : ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: sortedDates.length,
+                      itemBuilder: (context, index) {
+                        final dateKey = sortedDates[index];
+                        final records = dailyRecords[dateKey]!;
+                        final displayDate = DateFormat(
+                          'dd/MM/yyyy',
+                        ).format(DateTime.parse(dateKey));
 
-                            return Card(
-                              margin: const EdgeInsets.symmetric(vertical: 8.0),
-                              elevation: 3,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10)),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      displayDate,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    const Divider(),
-                                    // Use toDisplayString para o rótulo e toFirestoreString para buscar no mapa
-                                    _buildTimeRow(PunchType.entrada.toDisplayString(), records[PunchType.entrada.toFirestoreString()]),
-                                    _buildTimeRow(PunchType.saidaIntervalo.toDisplayString(), records[PunchType.saidaIntervalo.toFirestoreString()]),
-                                    _buildTimeRow(PunchType.retornoIntervalo.toDisplayString(), records[PunchType.retornoIntervalo.toFirestoreString()]),
-                                    _buildTimeRow(PunchType.saida.toDisplayString(), records[PunchType.saida.toFirestoreString()]),
-                                  ],
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 8.0),
+                          elevation: 3,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  displayDate,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
+                                const Divider(),
+                                // Use toDisplayString para o rótulo e toFirestoreString para buscar no mapa
+                                _buildTimeRow(
+                                  PunchType.entrada.toDisplayString(),
+                                  records[PunchType.entrada
+                                      .toFirestoreString()],
+                                ),
+                                _buildTimeRow(
+                                  PunchType.saidaIntervalo.toDisplayString(),
+                                  records[PunchType.saidaIntervalo
+                                      .toFirestoreString()],
+                                ),
+                                _buildTimeRow(
+                                  PunchType.retornoIntervalo.toDisplayString(),
+                                  records[PunchType.retornoIntervalo
+                                      .toFirestoreString()],
+                                ),
+                                _buildTimeRow(
+                                  PunchType.saida.toDisplayString(),
+                                  records[PunchType.saida.toFirestoreString()],
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
             ),
             actions: [
               TextButton(
@@ -546,10 +715,7 @@ class _HomePageState extends State<HomePage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            '$label:',
-            style: const TextStyle(fontWeight: FontWeight.w500),
-          ),
+          Text('$label:', style: const TextStyle(fontWeight: FontWeight.w500)),
           Text(time ?? '-'),
         ],
       ),
@@ -565,6 +731,15 @@ class _HomePageState extends State<HomePage> {
       );
     }
   }
+
+  // --- FUNÇÃO PARA VOLTAR PARA A TELA DE BOAS-VINDAS ---
+  void _backToWelcomeScreen() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => WelcomeScreen(user: widget.user)),
+    );
+  }
+  // --- FIM DA FUNÇÃO ---
 
   @override
   Widget build(BuildContext context) {
@@ -707,19 +882,40 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _logout,
-        child: const Icon(Icons.exit_to_app),
-        tooltip: 'Sair',
+      // --- FloatingActionButtons na parte inferior ---
+      floatingActionButton: Row(
+        mainAxisAlignment:
+            MainAxisAlignment.spaceBetween, // Para espaçar os botões
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(
+              left: 30,
+            ), // Adiciona um padding para a esquerda
+            child: FloatingActionButton(
+              onPressed: _backToWelcomeScreen,
+              child: const Icon(Icons.arrow_back),
+              tooltip: 'Voltar',
+              heroTag: 'backButton', // Adicione um heroTag único
+            ),
+          ),
+          FloatingActionButton(
+            onPressed: _logout,
+            child: const Icon(Icons.exit_to_app),
+            tooltip: 'Sair',
+            heroTag: 'logoutButton', // Adicione um heroTag único
+          ),
+        ],
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButtonLocation:
+          FloatingActionButtonLocation.centerFloat, // Centraliza a Row
     );
   }
 
+  // --- Função _buildPontoButton COMPLETA ---
   Widget _buildPontoButton(
     BuildContext context,
     String text,
-    PunchType type, // Tipo agora é PunchType
+    PunchType type,
     bool isEnabled,
     IconData icon,
   ) {
@@ -729,7 +925,9 @@ class _HomePageState extends State<HomePage> {
       label: Text(text, textAlign: TextAlign.center),
       style: ElevatedButton.styleFrom(
         foregroundColor: isEnabled ? Colors.white : Colors.grey[400],
-        backgroundColor: isEnabled ? Theme.of(context).primaryColor : Colors.grey[200],
+        backgroundColor: isEnabled
+            ? Theme.of(context).primaryColor
+            : Colors.grey[200],
         padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
