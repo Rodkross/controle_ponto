@@ -1,3 +1,4 @@
+import 'manage_users_screen.dart';
 import 'register_user_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -302,7 +303,32 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
+            ),const SizedBox(height: 20), // Este é o espaçamento antes do novo botão
+          // --- NOVO BOTÃO ADICIONADO AQUI ---
+          ElevatedButton.icon(
+            onPressed: () {
+              // Ação para navegar para a tela de gerenciamento de usuários
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ManageUsersScreen()),
+              );
+            },
+            icon: const Icon(Icons.manage_accounts), // Ícone sugestivo
+            label: const Text('Gerenciar Usuários'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(
+                vertical: 15,
+                horizontal: 25,
+              ),
+              textStyle: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
+          ),
             const SizedBox(height: 20),
             OutlinedButton.icon(
               onPressed: _logout,
@@ -913,41 +939,35 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
       // --- FloatingActionButtons na parte inferior ---
-      floatingActionButton: Row(
-        mainAxisAlignment:
-            MainAxisAlignment.spaceBetween, // Para espaçar os botões
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(
-              left: 30,
-            ), // Adiciona um padding para a esquerda
-            child: FloatingActionButton(
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(left: 28.0), // Ajuste este valor conforme necessário
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            FloatingActionButton.extended(
               onPressed: _backToWelcomeScreen,
-              child: const Icon(Icons.arrow_back),
+              label: const Text('Voltar'),
+              icon: const Icon(Icons.arrow_back),
               tooltip: 'Voltar',
-              heroTag: 'backButton', // Adicione um heroTag único
+              heroTag: 'backButton',
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
             ),
-          ),
-          FloatingActionButton.extended(
-            onPressed: _backToWelcomeScreen,
-            label: const Text('Voltar'),
-            icon: const Icon(Icons.arrow_back),
-            tooltip: 'Voltar',
-            heroTag: 'backButton',
-            backgroundColor: Theme.of(context).primaryColor,
-          ),
-          FloatingActionButton.extended(
-            onPressed: _logout,
-            label: const Text('Sair'),
-            icon: const Icon(Icons.exit_to_app),
-            tooltip: 'Sair',
-            heroTag: 'logoutButton',
-            backgroundColor: Theme.of(context).primaryColor,
-          ),
-        ],
+            const SizedBox(width: 16), // Este SizedBox já cria um espaçamento entre seus dois botões
+            FloatingActionButton.extended(
+              onPressed: _logout,
+              label: const Text('Sair'),
+              icon: const Icon(Icons.exit_to_app),
+              tooltip: 'Sair',
+              heroTag: 'logoutButton',
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+            ),
+          ],
+        ),
       ),
       floatingActionButtonLocation:
-          FloatingActionButtonLocation.centerFloat, // Centraliza a Row
+          FloatingActionButtonLocation.endFloat,
     );
   }
 
