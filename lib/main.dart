@@ -91,12 +91,13 @@ class LoginPage extends StatefulWidget {
   _LoginPageState createState() => _LoginPageState();
 }
 
+// ... (imports e outras classes) ...
+
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController senhaController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  bool _isPasswordVisible =
-      false; // Variável de estado para visibilidade da senha
+  bool _isPasswordVisible = false;
 
   void _login() async {
     try {
@@ -107,32 +108,58 @@ class _LoginPageState extends State<LoginPage> {
       final user = userCredential.user;
 
       if (user != null && mounted) {
-        // Verifica se o usuário já existe na coleção 'users' do Firestore
-        final userDocRef =
-            FirebaseFirestore.instance.collection('users').doc(user.uid);
-        final userDoc = await userDocRef.get();
+        final userDocRef = FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid);
+        DocumentSnapshot userDoc = await userDocRef
+            .get(); // Tenta obter o documento do usuário
 
-        // Se não existir, cria o documento para que ele apareça na tela de gerenciamento
+        bool isAdmin = false; // Assume que não é admin por padrão
+
+        // Se o documento do usuário não existe no Firestore, cria-o
         if (!userDoc.exists) {
           await userDocRef.set({
-            'name': user.email?.split('@')[0] ?? 'Usuário sem nome',
+            'name':
+                user.email?.split('@')[0] ?? 'Usuário sem nome', // Nome padrão
             'email': user.email,
+            'isAdmin': false, // Define como usuário comum por padrão
             'createdAt': FieldValue.serverTimestamp(),
           });
+          // Re-obtém o documento APÓS a criação para garantir que os dados estão disponíveis
+          userDoc = await userDocRef.get();
         }
 
-        // Navega para a WelcomeScreen após o login bem-sucedido
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => WelcomeScreen(user: user)),
-        );
+        // Verifica se os dados do documento não são nulos antes de tentar acessá-los
+        final Map<String, dynamic>? userData =
+            userDoc.data() as Map<String, dynamic>?;
+
+        if (userData != null && userData.containsKey('isAdmin')) {
+          isAdmin = userData['isAdmin'] ?? false;
+        } else {
+          // Se userData for nulo ou não contiver 'isAdmin', assume como não-admin
+          isAdmin = false;
+        }
+
+        // Navegação condicional baseada no status isAdmin
+        if (mounted) {
+          if (isAdmin) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => WelcomeScreen(user: user)),
+            );
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => HomePage(user: user)),
+            );
+          }
+        }
       }
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'Erro desconhecido no login.';
       switch (e.code) {
         case 'invalid-credential':
-          errorMessage =
-              'Credenciais inválidas. Verifique o e-mail e a senha.';
+          errorMessage = 'Credenciais inválidas. Verifique o e-mail e a senha.';
           break;
         case 'user-not-found':
           errorMessage = 'Nenhum usuário encontrado para este e-mail.';
@@ -170,6 +197,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    // ... (restante do código do build da LoginPage) ...
     return Scaffold(
       appBar: AppBar(title: const Text('Login'), centerTitle: true),
       body: Padding(
@@ -327,32 +355,32 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-            ),const SizedBox(height: 20), // Este é o espaçamento antes do novo botão
-          // --- NOVO BOTÃO ADICIONADO AQUI ---
-          ElevatedButton.icon(
-            onPressed: () {
-              // Ação para navegar para a tela de gerenciamento de usuários
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ManageUsersScreen()),
-              );
-            },
-            icon: const Icon(Icons.manage_accounts), // Ícone sugestivo
-            label: const Text('Gerenciar Usuários'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(
-                vertical: 15,
-                horizontal: 25,
-              ),
-              textStyle: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () {
+                // Ação para navegar para a tela de gerenciamento de usuários
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ManageUsersScreen()),
+                );
+              },
+              icon: const Icon(Icons.manage_accounts),
+              label: const Text('Gerenciar Usuários'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 15,
+                  horizontal: 25,
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
-          ),
             const SizedBox(height: 20),
             OutlinedButton.icon(
               onPressed: _logout,
@@ -551,8 +579,9 @@ class _HomePageState extends State<HomePage> {
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: const Text('Confirmar Batida'),
-          content:
-              Text('Deseja confirmar o registro de "${tipo.toDisplayString()}"?'),
+          content: Text(
+            'Deseja confirmar o registro de "${tipo.toDisplayString()}"?',
+          ),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -696,7 +725,6 @@ class _HomePageState extends State<HomePage> {
                           final displayDate = DateFormat(
                             'dd/MM',
                           ).format(DateTime.parse(dateKey));
-                          // Mapeie as chaves usando as strings do Firestore que correspondem aos enums
                           return DataRow(
                             cells: <DataCell>[
                               DataCell(Text(displayDate)),
@@ -987,7 +1015,9 @@ class _HomePageState extends State<HomePage> {
       ),
       // --- FloatingActionButtons na parte inferior ---
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(left: 28.0), // Ajuste este valor conforme necessário
+        padding: const EdgeInsets.only(
+          left: 28.0,
+        ), // Ajuste este valor conforme necessário
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -1000,7 +1030,9 @@ class _HomePageState extends State<HomePage> {
               backgroundColor: Theme.of(context).primaryColor,
               foregroundColor: Colors.white,
             ),
-            const SizedBox(width: 16), // Este SizedBox já cria um espaçamento entre seus dois botões
+            const SizedBox(
+              width: 16,
+            ), // Este SizedBox já cria um espaçamento entre seus dois botões
             FloatingActionButton.extended(
               onPressed: _logout,
               label: const Text('Sair'),
@@ -1013,8 +1045,7 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      floatingActionButtonLocation:
-          FloatingActionButtonLocation.endFloat,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 
