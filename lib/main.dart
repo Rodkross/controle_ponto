@@ -104,16 +104,36 @@ class _LoginPageState extends State<LoginPage> {
         email: emailController.text.trim(),
         password: senhaController.text.trim(),
       );
-      // Navega para a WelcomeScreen após o login bem-sucedido
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => WelcomeScreen(user: userCredential.user!),
-        ),
-      );
+      final user = userCredential.user;
+
+      if (user != null && mounted) {
+        // Verifica se o usuário já existe na coleção 'users' do Firestore
+        final userDocRef =
+            FirebaseFirestore.instance.collection('users').doc(user.uid);
+        final userDoc = await userDocRef.get();
+
+        // Se não existir, cria o documento para que ele apareça na tela de gerenciamento
+        if (!userDoc.exists) {
+          await userDocRef.set({
+            'name': user.email?.split('@')[0] ?? 'Usuário sem nome',
+            'email': user.email,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        }
+
+        // Navega para a WelcomeScreen após o login bem-sucedido
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => WelcomeScreen(user: user)),
+        );
+      }
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'Erro desconhecido no login.';
       switch (e.code) {
+        case 'invalid-credential':
+          errorMessage =
+              'Credenciais inválidas. Verifique o e-mail e a senha.';
+          break;
         case 'user-not-found':
           errorMessage = 'Nenhum usuário encontrado para este e-mail.';
           break;
@@ -134,13 +154,17 @@ class _LoginPageState extends State<LoginPage> {
           errorMessage = 'Erro no login: ${e.message ?? e.code}';
           break;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(errorMessage)));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(errorMessage)));
+      }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erro inesperado: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erro inesperado: $e')));
+      }
     }
   }
 
@@ -521,6 +545,29 @@ class _HomePageState extends State<HomePage> {
       }
       return;
     }
+
+    final bool? confirmado = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Confirmar Batida'),
+          content:
+              Text('Deseja confirmar o registro de "${tipo.toDisplayString()}"?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Confirmar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmado != true) return;
 
     try {
       await _db.collection('batidas').add({
