@@ -121,8 +121,6 @@ Feito com ❤️ por Rodkross.
 
 📌 Status do Projeto
 ✅ MVP funcional
-🚧 Admin/gestão de registros em desenvolvimento
-🧪 Testes e melhorias na segurança em andamento
 
 📃 Licença
 Este projeto está sob a licença MIT.
