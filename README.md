@@ -119,7 +119,7 @@ Siga os passos abaixo para configurar e rodar o projeto em sua máquina local.
 
 Feito com ❤️ por Rodkross.
 
-📌 Status do Projeto
+
 ✅ MVP funcional
 
 📃 Licença
