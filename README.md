@@ -79,18 +79,34 @@ Siga os passos abaixo para configurar e rodar o projeto em sua máquina local.
     - Na aba "Regras" do Firestore, cole as seguintes regras para garantir que os usuários só possam acessar seus próprios dados.
     ```js
     rules_version = '2';
-    service cloud.firestore {
-      match /databases/{database}/documents {
-        // Permite que usuários autenticados leiam e escrevam em seus próprios documentos
-        match /users/{userId} {
-          allow read, write: if request.auth != null && request.auth.uid == userId;
-        }
-        // Permite que usuários autenticados criem e leiam seus próprios registros de ponto
-        match /batidas/{batidaId} {
-          allow read, create: if request.auth != null && request.resource.data.uid == request.auth.uid;
-        }
-      }
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Regras para a coleção 'users'
+    // Permite que qualquer usuário autenticado leia todos os perfis de usuário.
+    // Permite que um usuário crie ou atualize APENAS SEU PRÓPRIO perfil.
+    // Permite a exclusão de usuários APENAS se o usuário autenticado for um administrador.
+    match /users/{userId} {
+      allow read: if request.auth != null;
+
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
+
+      allow delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
+
+    // Regras para a coleção 'batidas' (Registros de Ponto)
+    // Permite que um usuário autenticado crie um registro de batida,
+    // contanto que o 'uid' no registro corresponda ao 'uid' do usuário autenticado.
+    // Permite que um usuário autenticado leia APENAS seus próprios registros de batida.
+    // Impede a atualização ou exclusão de registros de batida existentes.
+    match /batidas/{batidaId} {
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
+      allow read: if request.auth != null && request.auth.uid == resource.data.uid;
+      allow update, delete: if false;
+    }
+  }
+}
     ```
 
 6.  **Instale as dependências do projeto:**
