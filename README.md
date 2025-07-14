@@ -79,8 +79,8 @@ Siga os passos abaixo para configurar e rodar o projeto em sua máquina local.
     - Na aba "Regras" do Firestore, cole as seguintes regras para garantir que os usuários só possam acessar seus próprios dados.
     ```js
     rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
+      service cloud.firestore {
+      match /databases/{database}/documents {
 
     // Regras para a coleção 'users'
     // Permite que qualquer usuário autenticado leia todos os perfis de usuário.
